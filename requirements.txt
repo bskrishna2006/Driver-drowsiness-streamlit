@@ -1,0 +1,7 @@
+streamlit==1.32.0
+opencv-python==4.9.0.80
+numpy==1.26.4
+mediapipe==0.10.9
+pygame==2.5.2
+tensorflow==2.15.0
+keras==2.15.1 
