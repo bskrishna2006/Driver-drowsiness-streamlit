@@ -159,6 +159,13 @@ with st.sidebar:
 # Initialize audio system
 def init_audio():
     try:
+        # Check if running on Streamlit Cloud
+        is_streamlit_cloud = os.environ.get('IS_STREAMLIT_CLOUD', False)
+        
+        if is_streamlit_cloud:
+            st.warning("⚠️ Audio alerts are disabled in cloud deployment. For full functionality including audio alerts, please run the application locally.")
+            return True
+        
         pygame.mixer.init()
         pygame.mixer.music.set_volume(alarm_volume)
         if os.path.exists("mixkit-facility-alarm-sound-999.wav"):
@@ -168,38 +175,48 @@ def init_audio():
             st.error("Alarm sound file not found!")
             return False
     except Exception as e:
-        st.error(f"Failed to initialize audio: {str(e)}")
-        return False
+        st.warning(f"⚠️ Audio system initialization failed: {str(e)}\nAudio alerts will be disabled.")
+        return True  # Return True to allow the app to run without audio
 
 # Play alarm with error handling
 def play_alarm():
     try:
-        pygame.mixer.music.stop()
-        pygame.mixer.music.set_volume(alarm_volume)
-        pygame.mixer.music.load("mixkit-facility-alarm-sound-999.wav")
-        pygame.mixer.music.play(-1)  # Loop the alarm sound
+        if os.environ.get('IS_STREAMLIT_CLOUD', False):
+            return
+        
+        if not pygame.mixer.music.get_busy():
+            pygame.mixer.music.stop()
+            pygame.mixer.music.set_volume(alarm_volume)
+            pygame.mixer.music.load("mixkit-facility-alarm-sound-999.wav")
+            pygame.mixer.music.play(-1)
     except Exception as e:
-        st.error(f"Failed to play alarm: {str(e)}")
+        st.warning("⚠️ Unable to play alarm sound")
 
 # Play favorite song
 def play_favorite_song():
     try:
+        if os.environ.get('IS_STREAMLIT_CLOUD', False):
+            return
+            
         if 'selected_song' in st.session_state and os.path.exists(st.session_state.selected_song):
-            pygame.mixer.music.stop() 
+            pygame.mixer.music.stop()
             pygame.mixer.music.set_volume(song_volume)
             pygame.mixer.music.load(st.session_state.selected_song)
             pygame.mixer.music.play(-1)
             return True
     except Exception as e:
-        st.error(f"Failed to play favorite song: {str(e)}")
+        st.warning("⚠️ Unable to play song")
     return False
 
 # Stop alarm with error handling
 def stop_alarm():
     try:
+        if os.environ.get('IS_STREAMLIT_CLOUD', False):
+            return
+            
         pygame.mixer.music.stop()
     except Exception as e:
-        st.error(f"Failed to stop alarm: {str(e)}")
+        pass
 
 # Calculate drowsiness level (0-100)
 def calculate_drowsiness_level(sleep_counter, total_frames):
@@ -420,4 +437,16 @@ if st.session_state.running and st.session_state.audio_initialized:
         time.sleep(0.1)
 
     cap.release()
-    pygame.mixer.quit() 
+    pygame.mixer.quit()
+
+# Add a notice about audio limitations in cloud deployment
+st.markdown("""
+<div style='background-color: #fff3cd; padding: 1rem; border-radius: 0.5rem; margin: 1rem 0;'>
+    <h4 style='color: #856404; margin: 0;'>⚠️ Cloud Deployment Notice</h4>
+    <p style='color: #856404; margin: 0.5rem 0 0 0;'>
+        This is the cloud-deployed version of the application. Audio alerts are disabled in this environment.
+        For full functionality including audio alerts, please run the application locally following the instructions in the
+        <a href='https://github.com/bskrishna2006/Driver-drowsiness-streamlit' target='_blank'>GitHub repository</a>.
+    </p>
+</div>
+""", unsafe_allow_html=True) 
